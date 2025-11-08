@@ -1,9 +1,24 @@
 server:
-  port: 8081
+  port: 8083
   servlet:
     context-path: /api/v1/scheduler
     
 spring:
+  application:
+    name: ROOMBILLZ-SCHEDULER-SERVICE
+  main:
+    allow-bean-definition-overriding: true
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 20MB
+
+  cloud:
+    compatibility-verifier:
+      enabled: false
+          
+#Database configuration  
   datasource:
     url: jdbc:mysql://localhost:3306/roombillz_scheduler?useSSL=false&serverTimezone=UTC
     username: root
@@ -26,3 +41,49 @@ spring:
 
       # Clustering (all instances point to same DB)
       org.quartz.jobStore.clusterCheckinInterval: 20000
+
+#Logging
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.openfeign: DEBUG
+    com.inn.client: DEBUG
+
+#Eureka configuration
+eureka:
+  instance:
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 20
+
+    metadata-map:
+      version: v1
+      environment: LOCAL
+      region: IN
+
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    registry-fetch-interval-seconds: 5
+    
+#Actuator Configuration
+management:
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+      
+  endpoints:
+    web:
+      exposure:
+        include: health, info, beans, env, metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+            
+      
