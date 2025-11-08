@@ -2,12 +2,14 @@ server:
   port: 8083
   servlet:
     context-path: /api/v1/scheduler
-    
+
 spring:
   application:
     name: ROOMBILLZ-SCHEDULER-SERVICE
+
   main:
     allow-bean-definition-overriding: true
+
   servlet:
     multipart:
       enabled: true
@@ -17,73 +19,72 @@ spring:
   cloud:
     compatibility-verifier:
       enabled: false
-          
-#Database configuration  
+
   datasource:
-    url: jdbc:mysql://localhost:3306/roombillz_scheduler?useSSL=false&serverTimezone=UTC
+    url: jdbc:mysql://localhost:3306/roombillz_scheduler?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: root
     password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
   quartz:
     job-store-type: jdbc
     jdbc:
-      initialize-schema: never   # tables are created via script
+      initialize-schema: never   # we already created Quartz tables manually
+
     properties:
-      org.quartz.scheduler.instanceName: roomBillzScheduler
+      org.quartz.scheduler.instanceName: ROOMBILLZ-SCHEDULER
       org.quartz.scheduler.instanceId: AUTO
       org.quartz.threadPool.threadCount: 10
 
-      # JDBC JobStore
+      # JobStore Config
       org.quartz.jobStore.class: org.quartz.impl.jdbcjobstore.JobStoreTX
       org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.StdJDBCDelegate
-      org.quartz.jobStore.misfireThreshold: 60000
       org.quartz.jobStore.tablePrefix: QRTZ_
-      org.quartz.jobStore.isClustered: true  # enable if running multiple instances
-
-      # Clustering (all instances point to same DB)
+      org.quartz.jobStore.misfireThreshold: 60000
+      org.quartz.jobStore.isClustered: true
       org.quartz.jobStore.clusterCheckinInterval: 20000
 
-#Logging
+      # ✅ Link Quartz to this datasource
+      org.quartz.jobStore.dataSource: quartzDataSource
+
+      # ✅ Use HikariCP for Quartz datasource (no c3p0 required)
+      org.quartz.dataSource.quartzDataSource.provider: hikaricp
+
+      # ✅ Quartz DataSource credentials
+      org.quartz.dataSource.quartzDataSource.driver: com.mysql.cj.jdbc.Driver
+      org.quartz.dataSource.quartzDataSource.URL: jdbc:mysql://localhost:3306/roombillz_scheduler?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      org.quartz.dataSource.quartzDataSource.user: root
+      org.quartz.dataSource.quartzDataSource.password: root
+      org.quartz.dataSource.quartzDataSource.maxConnections: 10
+
 logging:
   level:
     root: INFO
-    org.springframework.cloud.openfeign: DEBUG
-    com.inn.client: DEBUG
+    org.springframework: INFO
+    org.quartz: DEBUG
+    com.inn: DEBUG
 
-#Eureka configuration
 eureka:
   instance:
-    lease-renewal-interval-in-seconds: 10
-    lease-expiration-duration-in-seconds: 20
-
+    prefer-ip-address: true
     metadata-map:
       version: v1
       environment: LOCAL
       region: IN
-
   client:
+    fetch-registry: true
+    register-with-eureka: true
     service-url:
       defaultZone: http://localhost:8761/eureka/
-    registry-fetch-interval-seconds: 5
-    
-#Actuator Configuration
+
 management:
-  health:
-    livenessstate:
-      enabled: true
-    readinessstate:
-      enabled: true
-      
   endpoints:
     web:
       exposure:
-        include: health, info, beans, env, metrics,prometheus
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: always
-    prometheus:
-      enabled: true
   metrics:
     tags:
       application: ${spring.application.name}
-            
-      
