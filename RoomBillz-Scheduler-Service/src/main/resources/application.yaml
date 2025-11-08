@@ -3,6 +3,12 @@ server:
   servlet:
     context-path: /api/v1/scheduler
 
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui/index.html
+
 spring:
   application:
     name: ROOMBILLZ-SCHEDULER-SERVICE
