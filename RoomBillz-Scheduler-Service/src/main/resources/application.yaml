@@ -1,0 +1,134 @@
+server:
+  port: 8083
+  servlet:
+    context-path: /api/v1/scheduler
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui/index.html
+
+spring:
+  application:
+    name: ROOMBILLZ-SCHEDULER-SERVICE
+
+  main:
+    allow-bean-definition-overriding: true
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 20MB
+
+  cloud:
+    compatibility-verifier:
+      enabled: false
+
+  # ============================================================
+  # DATABASE CONFIG (LOCAL + DOCKER)
+  # ============================================================
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:3306/roombillz_scheduler?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # ============================================================
+  # QUARTZ CONFIG (LOCAL + DOCKER)
+  # ============================================================
+  quartz:
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: never  # tables already created
+
+    properties:
+      org.quartz.scheduler.instanceName: ROOMBILLZ-SCHEDULER
+      org.quartz.scheduler.instanceId: AUTO
+      org.quartz.threadPool.threadCount: 10
+
+      # JobStore Configuration
+      org.quartz.jobStore.class: org.quartz.impl.jdbcjobstore.JobStoreTX
+      org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.StdJDBCDelegate
+      org.quartz.jobStore.tablePrefix: QRTZ_
+      org.quartz.jobStore.misfireThreshold: 60000
+      org.quartz.jobStore.isClustered: true
+      org.quartz.jobStore.clusterCheckinInterval: 20000
+
+      # Link Quartz to datasource
+      org.quartz.jobStore.dataSource: quartzDataSource
+
+      # Use HikariCP (best for production)
+      org.quartz.dataSource.quartzDataSource.provider: hikaricp
+
+      # Quartz datasource (LOCAL + DOCKER)
+      org.quartz.dataSource.quartzDataSource.driver: com.mysql.cj.jdbc.Driver
+      org.quartz.dataSource.quartzDataSource.URL: jdbc:mysql://${DB_HOST:localhost}:3306/roombillz_scheduler?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      org.quartz.dataSource.quartzDataSource.user: ${DB_USER:root}
+      org.quartz.dataSource.quartzDataSource.password: ${DB_PASSWORD:root}
+      org.quartz.dataSource.quartzDataSource.maxConnections: 10
+
+# ============================================================
+# FEIGN URLS (LOCAL + DOCKER FRIENDLY)
+# Scheduler calls other services
+# ============================================================
+
+# RoomBillz Main Service
+roombillz:
+  service:
+    url: http://${ROOMBILLZ_HOST:localhost}:8081/api/v1/roomBillz
+
+# Notification Service
+notification:
+  service:
+    url: http://${NOTIFICATION_HOST:localhost}:8082/api/v1/notification
+
+# Document Service
+document:
+  service:
+    url: http://${DOCUMENT_HOST:localhost}:8084/api/v1/document
+
+# ============================================================
+# LOGGING
+# ============================================================
+logging:
+  level:
+    root: INFO
+    org.springframework: INFO
+    org.quartz: DEBUG
+    com.inn: DEBUG
+
+# ============================================================
+# EUREKA CONFIG
+# ============================================================
+eureka:
+  instance:
+    prefer-ip-address: true
+    metadata-map:
+      version: v1
+      environment: LOCAL
+      region: IN
+
+  client:
+    fetch-registry: true
+    register-with-eureka: true
+    service-url:
+      defaultZone: http://${EUREKA_HOST:localhost}:8761/eureka/
+
+# ============================================================
+# ACTUATOR + PROMETHEUS
+# ============================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+  endpoint:
+    health:
+      show-details: always
+
+  metrics:
+    tags:
+      application: ${spring.application.name}
