@@ -1,47 +1,83 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration>
+<configuration scan="true">
 
-    <!-- Configurable Log Path (Local + Docker) -->
+    <!-- Load application name -->
+    <springProperty scope="context" name="appName" source="spring.application.name"/>
+
+    <!-- Common log path for LOCAL -->
     <property name="LOG_PATH" value="${LOG_PATH:-logs}"/>
     <property name="LOG_FILE" value="${LOG_PATH}/RoomBillzSchedulerService.log"/>
 
-    <!-- Console Appender -->
-    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
-        </encoder>
-    </appender>
+    <!-- ============================================================
+         1️⃣ LOCAL PROFILE — Pretty console + Rolling JSON file
+    ============================================================ -->
+    <springProfile name="local">
 
-    <!-- JSON Rolling File Appender -->
-    <appender name="JSON_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_FILE}</file>
+        <!-- Pretty Console Logs -->
+        <appender name="LOCAL_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            </encoder>
+        </appender>
 
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <!-- Daily + Size Based Rotation -->
-            <fileNamePattern>${LOG_PATH}/RoomBillzSchedulerService-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <maxFileSize>50MB</maxFileSize>
-            <totalSizeCap>500MB</totalSizeCap>
-            <maxHistory>7</maxHistory>
-        </rollingPolicy>
+        <!-- Rolling JSON File for Local Debugging -->
+        <appender name="LOCAL_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_FILE}</file>
 
-        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
-            <providers>
-                <timestamp/>
-                <logLevel/>
-                <threadName/>
-                <loggerName/>
-                <message/>
-                <mdc/>          <!-- traceId / spanId / userId -->
-                <stackTrace/>
-                <context/>
-            </providers>
-        </encoder>
-    </appender>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_PATH}/RoomBillzSchedulerService-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+                <maxFileSize>50MB</maxFileSize>
+                <totalSizeCap>500MB</totalSizeCap>
+                <maxHistory>7</maxHistory>
+            </rollingPolicy>
 
-    <!-- Root logger outputs to console + file -->
-    <root level="INFO">
-        <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="JSON_FILE"/>
-    </root>
+            <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+                <providers>
+                    <timestamp/>
+                    <logLevel/>
+                    <threadName/>
+                    <loggerName/>
+                    <message/>
+                    <mdc/>            <!-- traceId, spanId, userId -->
+                    <stackTrace/>
+                    <context/>
+                </providers>
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="LOCAL_CONSOLE"/>
+            <appender-ref ref="LOCAL_FILE"/>
+        </root>
+
+    </springProfile>
+
+
+    <!-- ============================================================
+         2️⃣ DOCKER PROFILE — JSON console ONLY (Filebeat-ready)
+    ============================================================ -->
+    <springProfile name="docker">
+
+        <appender name="DOCKER_JSON" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+                <providers>
+                    <timestamp/>
+                    <logLevel/>
+                    <threadName/>
+                    <loggerName/>
+                    <message/>
+                    <mdc/>           <!-- trace fields for Kibana -->
+                    <stackTrace/>
+                    <context/>
+                    <customFields>{"service.name":"${appName:-schedule-service}"}</customFields>
+                </providers>
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="DOCKER_JSON"/>
+        </root>
+
+    </springProfile>
 
 </configuration>

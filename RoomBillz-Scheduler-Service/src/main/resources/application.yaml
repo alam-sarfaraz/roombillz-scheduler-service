@@ -13,6 +13,9 @@ spring:
   application:
     name: ROOMBILLZ-SCHEDULER-SERVICE
 
+  profiles:
+    active: local
+
   main:
     allow-bean-definition-overriding: true
 
