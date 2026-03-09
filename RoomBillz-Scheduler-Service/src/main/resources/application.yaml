@@ -112,7 +112,8 @@ eureka:
       version: v1
       environment: LOCAL
       region: IN
-
+    prefer-ip-address: true 
+    
   client:
     fetch-registry: true
     register-with-eureka: true
